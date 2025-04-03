@@ -4,10 +4,29 @@ import (
 	"fmt"
 )
 
-type State struct {
-	State map[string]interface{} `json:"state"`
+type StateHolder interface {
+	// GetState will return the map that holds the data.
+	GetState() map[string]interface{}
+	// GetLocks returns a slice of lock strings
+	GetLocks() []string
+	SetLocks([]string)
+}
 
-	locks []string
+// WithContract creates a new ContractualState, initializing the data
+// state must be a pointer
+func WithContract(state StateHolder, contract Contract) (*ContractualState, error) {
+	cs := &ContractualState{
+		parent:   state,
+		contract: contract,
+		Provides: make(map[string]interface{}),
+		Consumes: make(map[string]interface{}),
+	}
+
+	if err := cs.consume(state); err != nil {
+		return nil, err
+	}
+
+	return cs, nil
 }
 
 type Obligation struct {
@@ -31,22 +50,28 @@ type ContractualState struct {
 	// Consumes is data that is given to the ContractualState from the State
 	Consumes map[string]interface{}
 
-	parent   *State
+	// parent should be a pointer
+	parent   StateHolder
 	contract Contract
 }
 
 // consume will fetch data from the `state` and set it in the ContractualState
-func (s *ContractualState) consume(state *State) error {
+// state Must be a pointer
+func (s *ContractualState) consume(state StateHolder) error {
+	locks := state.GetLocks()
+	stateData := state.GetState()
+
 	for _, obligation := range s.contract.Consumes {
 		key := obligation.Key
 
-		for _, lockName := range state.locks {
+		fmt.Println(locks)
+		for _, lockName := range locks {
 			if lockName == key {
 				return fmt.Errorf("Key %s is locked", key)
 			}
 		}
 
-		value, ok := state.State[key]
+		value, ok := stateData[key]
 
 		if !ok && obligation.Required {
 			return fmt.Errorf("Obligation %s does not exist and cannot be consumed", key)
@@ -81,27 +106,14 @@ func (s *ContractualState) Fulfill() error {
 		}
 	}
 
+	stateData := s.parent.GetState()
+	locksData := s.parent.GetLocks()
+
 	for key, value := range staging {
-		s.parent.State[key] = value
+		stateData[key] = value
 	}
 
-	s.parent.locks = append(s.parent.locks, locks...)
+	locksData = append(locksData, locks...)
 
 	return nil
-}
-
-// WithContract creates a new ContractualState, initializing the data
-func (s *State) WithContract(contract Contract) (*ContractualState, error) {
-	cs := &ContractualState{
-		parent:   s,
-		contract: contract,
-		Provides: make(map[string]interface{}),
-		Consumes: make(map[string]interface{}),
-	}
-
-	if err := cs.consume(s); err != nil {
-		return nil, err
-	}
-
-	return cs, nil
 }
