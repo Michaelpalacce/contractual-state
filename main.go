@@ -46,7 +46,7 @@ func main() {
 
 	overlappingContract := Contract{
 		WillProvide: []Obligation{
-			{Required: true, Key: "test.property", Lock: true},
+			{Required: true, Key: "test.struct", Lock: true},
 		},
 	}
 
@@ -55,5 +55,8 @@ func main() {
 		panic(err)
 	}
 
+	if err := cs.Fulfill(); err != nil {
+		panic(err)
+	}
 	fmt.Println(cs)
 }
