@@ -4,28 +4,6 @@ import (
 	"fmt"
 )
 
-type State struct {
-	State map[string]interface{} `json:"state"`
-
-	locks []string
-}
-
-func (s *State) GetState() map[string]interface{} {
-	if s.State == nil {
-		s.State = make(map[string]interface{})
-	}
-
-	return s.State
-}
-
-func (s *State) GetLocks() *[]string {
-	if s.locks == nil {
-		s.locks = make([]string, 0)
-	}
-
-	return &s.locks
-}
-
 func main() {
 	state := &State{
 		State: map[string]interface{}{
@@ -37,11 +15,11 @@ func main() {
 	}
 
 	contract := Contract{
-		Consumes: []Obligation{
+		WillConsume: []Obligation{
 			{Required: true, Key: "test.property"},
 			{Required: true, Key: "test.struct"},
 		},
-		Provides: []Obligation{
+		WillProvide: []Obligation{
 			{Required: true, Key: "provided.key"},
 			{Required: true, Key: "test.struct"},
 			{Required: true, Key: "test.property", Lock: true},
@@ -67,7 +45,7 @@ func main() {
 	fmt.Println("Original state after fulfillment:", state.State)
 
 	overlappingContract := Contract{
-		Provides: []Obligation{
+		WillProvide: []Obligation{
 			{Required: true, Key: "test.property", Lock: true},
 		},
 	}
