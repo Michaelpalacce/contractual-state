@@ -2,14 +2,14 @@ package main
 
 // State is a simple implementation of the StateHolder interface
 type State struct {
-	State map[string]interface{} `json:"state"`
+	State map[string]any `json:"state"`
 
 	locks []string
 }
 
-func (s *State) GetState() map[string]interface{} {
+func (s *State) GetState() map[string]any {
 	if s.State == nil {
-		s.State = make(map[string]interface{})
+		s.State = make(map[string]any)
 	}
 
 	return s.State

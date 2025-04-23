@@ -2,11 +2,13 @@ package main
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 )
 
 type StateHolder interface {
 	// GetState will return the map that holds the data.
-	GetState() map[string]interface{}
+	GetState() map[string]any
 	// GetLocks returns a slice of lock strings
 	GetLocks() []string
 	// AddLocks will add locks to the StateHolder's locks
@@ -19,8 +21,8 @@ func WithContract(state StateHolder, contract Contract) (*ContractualState, erro
 	cs := &ContractualState{
 		parent:   state,
 		contract: contract,
-		Provides: make(map[string]interface{}),
-		Consumes: make(map[string]interface{}),
+		Provides: make(map[string]any),
+		Consumes: make(map[string]any),
 	}
 
 	if err := cs.locks(state); err != nil {
@@ -51,9 +53,9 @@ type Contract struct {
 
 type ContractualState struct {
 	// Provides is data that will be provided to the State after fulfillment
-	Provides map[string]interface{}
+	Provides map[string]any
 	// Consumes is data that is given to the ContractualState from the State
-	Consumes map[string]interface{}
+	Consumes map[string]any
 
 	// parent should be a pointer
 	parent   StateHolder
@@ -67,10 +69,8 @@ func (s *ContractualState) locks(state StateHolder) error {
 	for _, obligation := range s.contract.WillProvide {
 		key := obligation.Key
 
-		for _, lockName := range locks {
-			if lockName == key {
-				return fmt.Errorf("Key %s is locked", key)
-			}
+		if slices.Contains(locks, key) {
+			return fmt.Errorf("key %s is locked", key)
 		}
 	}
 
@@ -99,7 +99,7 @@ func (s *ContractualState) consume(state StateHolder) error {
 
 // Fulfill will atomically set the state to the parent object or fail
 func (s *ContractualState) Fulfill() error {
-	staging := make(map[string]interface{})
+	staging := make(map[string]any)
 	locks := make([]string, 0)
 
 	for _, obligation := range s.contract.WillProvide {
@@ -121,9 +121,7 @@ func (s *ContractualState) Fulfill() error {
 
 	stateData := s.parent.GetState()
 
-	for key, value := range staging {
-		stateData[key] = value
-	}
+	maps.Copy(stateData, staging)
 
 	s.parent.AddLocks(locks)
 
