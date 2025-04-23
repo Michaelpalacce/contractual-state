@@ -6,7 +6,7 @@ import (
 
 func main() {
 	state := &State{
-		State: map[string]interface{}{
+		State: map[string]any{
 			"test.property": "Hello",
 			"test.struct": struct{ Test string }{
 				Test: "123",
@@ -40,7 +40,9 @@ func main() {
 	fmt.Println("Consumed data after modification:", cs.Provides)
 	fmt.Println("Original state (unchanged):", state.State)
 
-	cs.Fulfill()
+	if err = cs.Fulfill(); err != nil {
+		panic(err)
+	}
 
 	fmt.Println("Original state after fulfillment:", state.State)
 
